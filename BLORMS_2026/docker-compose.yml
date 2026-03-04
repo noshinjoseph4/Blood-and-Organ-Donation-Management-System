@@ -1,0 +1,49 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgis/postgis:15-3.3
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_DB=vitalconnect
+      - POSTGRES_USER=vitalconnect_user
+      - POSTGRES_PASSWORD=vitalconnect_password
+    ports:
+      - "5432:5432"
+
+  redis:
+    image: redis:alpine
+    ports:
+      - "6379:6379"
+
+  backend:
+    build: ./backend
+    command: python manage.py runserver 0.0.0.0:8000
+    volumes:
+      - ./backend:/app
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+      - redis
+    environment:
+      - DB_NAME=vitalconnect
+      - DB_USER=vitalconnect_user
+      - DB_PASSWORD=vitalconnect_password
+      - DB_HOST=db
+      - REDIS_HOST=redis
+
+  frontend:
+    build: ./frontend
+    command: npm run dev -- --host
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
